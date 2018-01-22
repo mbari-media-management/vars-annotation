@@ -146,7 +146,7 @@ public class ImageViewController {
                     }
                 }
             });
-            comboBox.setConverter(new StringConverter<ImageReference>() {
+            comboBox.setConverter(new StringConverter<>() {
                 @Override
                 public String toString(ImageReference object) {
                     return object.getDescription() + " [" + object.getFormat() + "]";

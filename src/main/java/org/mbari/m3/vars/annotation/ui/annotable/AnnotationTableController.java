@@ -1,7 +1,7 @@
 package org.mbari.m3.vars.annotation.ui.annotable;
 
-import com.sun.javafx.scene.control.skin.TableViewSkin;
-import com.sun.javafx.scene.control.skin.VirtualFlow;
+//import com.sun.javafx.scene.control.skin.TableViewSkin;
+//import com.sun.javafx.scene.control.skin.VirtualFlow;
 import io.reactivex.Observable;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
@@ -9,6 +9,8 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.control.skin.TableViewSkin;
+import javafx.scene.control.skin.VirtualFlow;
 import org.mbari.m3.vars.annotation.Data;
 import org.mbari.m3.vars.annotation.EventBus;
 import org.mbari.m3.vars.annotation.events.AnnotationsAddedEvent;
@@ -290,13 +292,13 @@ public class AnnotationTableController {
         int idxFirst;
         int idxLast;
         if (flow != null &&
-                flow.getFirstVisibleCellWithinViewPort() != null &&
-                flow.getLastVisibleCellWithinViewPort() != null) {
-            idxFirst = flow.getFirstVisibleCellWithinViewPort().getIndex();
+                flow.getFirstVisibleCell() != null &&
+                flow.getLastVisibleCell() != null) {
+            idxFirst = flow.getFirstVisibleCell().getIndex();
             if (idxFirst > tableView.getItems().size()) {
                 idxFirst = tableView.getItems().size() - 1;
             }
-            idxLast = flow.getLastVisibleCellWithinViewPort().getIndex();
+            idxLast = flow.getLastVisibleCell().getIndex();
             if (idxLast > tableView.getItems().size()) {
                 idxLast = tableView.getItems().size() - 1;
             }

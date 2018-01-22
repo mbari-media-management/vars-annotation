@@ -16,7 +16,6 @@ import org.mbari.m3.vars.annotation.UIToolBox;
 import org.mbari.m3.vars.annotation.messages.ShowNonfatalErrorAlert;
 import org.mbari.m3.vars.annotation.model.Association;
 import org.mbari.m3.vars.annotation.model.User;
-import org.mbari.m3.vars.annotation.ui.shared.animation.FlashTransition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,10 +124,10 @@ public class AssocButtonPaneController {
                 .findFirst();
 
         // flash matching version
-        match.ifPresent(btn -> {
-            FlashTransition transition = new FlashTransition(btn);
-            transition.play();
-        });
+//        match.ifPresent(btn -> {
+//            FlashTransition transition = new FlashTransition(btn);
+//            transition.play();
+//        });
 
 
         return match.isPresent();

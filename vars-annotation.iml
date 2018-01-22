@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module org.jetbrains.idea.maven.project.MavenProjectsManager.isMavenModule="true" type="JAVA_MODULE" version="4">
-  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_9">
     <output url="file://$MODULE_DIR$/target/classes" />
     <output-test url="file://$MODULE_DIR$/target/test-classes" />
     <content url="file://$MODULE_DIR$">
@@ -14,8 +14,8 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" scope="TEST" name="Maven: junit:junit:4.12" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.hamcrest:hamcrest-core:1.3" level="project" />
-    <orderEntry type="library" name="Maven: de.jensd:fontawesomefx-commons:8.15" level="project" />
-    <orderEntry type="library" name="Maven: de.jensd:fontawesomefx-materialicons:2.2.0-5" level="project" />
+    <orderEntry type="library" name="Maven: de.jensd:fontawesomefx-commons:9.1.2" level="project" />
+    <orderEntry type="library" name="Maven: de.jensd:fontawesomefx-materialicons:2.2.0-9.1.2" level="project" />
     <orderEntry type="library" name="Maven: org.mbari.vcr4j:vcr4j-core:4.0.1-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: org.mbari.vcr4j:vcr4j-sharktopoda:4.0.1-SNAPSHOT" level="project" />
     <orderEntry type="library" name="Maven: com.squareup.retrofit2:retrofit:2.3.0" level="project" />
@@ -26,7 +26,6 @@
     <orderEntry type="library" name="Maven: com.fatboyindustrial.gson-javatime-serialisers:gson-javatime-serialisers:1.1.1" level="project" />
     <orderEntry type="library" name="Maven: com.squareup.retrofit2:converter-gson:2.3.0" level="project" />
     <orderEntry type="library" name="Maven: org.controlsfx:controlsfx:8.40.14" level="project" />
-    <orderEntry type="library" name="Maven: no.tornado:fxlauncher:1.0.17" level="project" />
     <orderEntry type="library" name="Maven: io.reactivex.rxjava2:rxjava:2.1.8" level="project" />
     <orderEntry type="library" name="Maven: org.reactivestreams:reactive-streams:1.0.2" level="project" />
     <orderEntry type="library" name="Maven: io.reactivex.rxjava2:rxjavafx:2.2.2" level="project" />
@@ -34,7 +33,7 @@
     <orderEntry type="library" name="Maven: javax.inject:javax.inject:1" level="project" />
     <orderEntry type="library" name="Maven: aopalliance:aopalliance:1.0" level="project" />
     <orderEntry type="library" name="Maven: com.typesafe:config:1.3.2" level="project" />
-    <orderEntry type="library" name="Maven: com.jfoenix:jfoenix:8.0.1" level="project" />
+    <orderEntry type="library" name="Maven: com.jfoenix:jfoenix:9.0.1" level="project" />
     <orderEntry type="library" name="Maven: com.auth0:java-jwt:3.3.0" level="project" />
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.core:jackson-databind:2.9.2" level="project" />
     <orderEntry type="library" name="Maven: com.fasterxml.jackson.core:jackson-annotations:2.9.0" level="project" />
@@ -45,11 +44,20 @@
     <orderEntry type="library" name="Maven: ch.qos.logback:logback-classic:1.2.3" level="project" />
     <orderEntry type="library" name="Maven: ch.qos.logback:logback-core:1.2.3" level="project" />
     <orderEntry type="library" name="Maven: eu.hansolo:Medusa:7.9" level="project" />
-    <orderEntry type="library" name="Maven: com.google.guava:guava:23.0" level="project" />
+    <orderEntry type="library" name="Maven: com.google.guava:guava:23.6-jre" level="project" />
     <orderEntry type="library" name="Maven: com.google.code.findbugs:jsr305:1.3.9" level="project" />
-    <orderEntry type="library" name="Maven: com.google.errorprone:error_prone_annotations:2.0.18" level="project" />
+    <orderEntry type="library" name="Maven: org.checkerframework:checker-compat-qual:2.0.0" level="project" />
+    <orderEntry type="library" name="Maven: com.google.errorprone:error_prone_annotations:2.1.3" level="project" />
     <orderEntry type="library" name="Maven: com.google.j2objc:j2objc-annotations:1.1" level="project" />
     <orderEntry type="library" name="Maven: org.codehaus.mojo:animal-sniffer-annotations:1.14" level="project" />
+    <orderEntry type="library" name="Maven: javax.xml.bind:jaxb-api:2.3.0" level="project" />
+    <orderEntry type="library" name="Maven: org.glassfish.jaxb:jaxb-runtime:2.3.0" level="project" />
+    <orderEntry type="library" name="Maven: org.glassfish.jaxb:jaxb-core:2.3.0" level="project" />
+    <orderEntry type="library" name="Maven: org.glassfish.jaxb:txw2:2.3.0" level="project" />
+    <orderEntry type="library" name="Maven: com.sun.istack:istack-commons-runtime:3.0.5" level="project" />
+    <orderEntry type="library" name="Maven: org.jvnet.staxex:stax-ex:1.7.8" level="project" />
+    <orderEntry type="library" name="Maven: com.sun.xml.fastinfoset:FastInfoset:1.2.13" level="project" />
+    <orderEntry type="library" name="Maven: javax.activation:javax.activation-api:1.2.0" level="project" />
     <orderEntry type="library" name="Maven: org.glassfish.jersey.core:jersey-client:2.26" level="project" />
     <orderEntry type="library" name="Maven: javax.ws.rs:javax.ws.rs-api:2.1" level="project" />
     <orderEntry type="library" name="Maven: org.glassfish.jersey.core:jersey-common:2.26" level="project" />
