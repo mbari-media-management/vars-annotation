@@ -40,13 +40,15 @@ public class Initializer {
      */
     public static Config getConfig() {
         if (config == null) {
+            Config defaultConfig =  ConfigFactory.load();
             final Path p0 = getSettingsDirectory();
             final Path path = p0.resolve("vars-annotation.conf");
             if (Files.exists(path)) {
-                config = ConfigFactory.parseFile(path.toFile());
+                config = ConfigFactory.parseFile(path.toFile())
+                        .withFallback(defaultConfig);
             }
             else {
-                config = ConfigFactory.load();
+                config = defaultConfig;
             }
         }
         return config;
@@ -131,6 +133,8 @@ public class Initializer {
             String moduleName = getConfig().getString("app.injector.module.class");
             try {
                 Class clazz = Class.forName(moduleName);
+                // TODO in java 9 use clazz.getDeclaredConstructor().newInstance()
+                // You'll have to find one where constructor.getParameterCount == 0
                 Module module = (Module) clazz.newInstance();
                 injector = Guice.createInjector(module);
             } catch (Exception e) {
