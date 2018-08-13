@@ -1,19 +1,11 @@
 package org.mbari.m3.vars.annotation.commands;
 
-import org.mbari.m3.vars.annotation.Data;
 import org.mbari.m3.vars.annotation.EventBus;
 import org.mbari.m3.vars.annotation.UIToolBox;
 import org.mbari.m3.vars.annotation.events.AnnotationsAddedEvent;
 import org.mbari.m3.vars.annotation.events.AnnotationsRemovedEvent;
 import org.mbari.m3.vars.annotation.events.AnnotationsSelectedEvent;
 import org.mbari.m3.vars.annotation.model.Annotation;
-import org.mbari.m3.vars.annotation.model.Media;
-import org.mbari.vcr4j.VideoIndex;
-
-import java.time.Instant;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 
 /**
@@ -40,23 +32,27 @@ public class CreateAnnotationFromConceptCmd implements Command {
                             .createAnnotation(a0)
                             .thenAccept(a1 -> {
                                 annotation = a1;
-                                EventBus eventBus = toolBox.getEventBus();
-                                eventBus.send(new AnnotationsAddedEvent(a1));
-                                eventBus.send(new AnnotationsSelectedEvent(a1));
+                                if (a1 != null) {
+                                    EventBus eventBus = toolBox.getEventBus();
+                                    eventBus.send(new AnnotationsAddedEvent(a1));
+                                    eventBus.send(new AnnotationsSelectedEvent(a1));
+                                }
                             });
                 });
     }
 
     @Override
     public void unapply(UIToolBox toolBox) {
-        toolBox.getServices()
-                .getAnnotationService()
-                .deleteAnnotation(annotation.getObservationUuid())
-                .thenAccept(a -> {
-                    toolBox.getEventBus()
-                            .send(new AnnotationsRemovedEvent(annotation));
-                    annotation = null;
-                });
+        if (annotation != null) {
+            toolBox.getServices()
+                    .getAnnotationService()
+                    .deleteAnnotation(annotation.getObservationUuid())
+                    .thenAccept(a -> {
+                        toolBox.getEventBus()
+                                .send(new AnnotationsRemovedEvent(annotation));
+                        annotation = null;
+                    });
+        }
     }
 
     @Override

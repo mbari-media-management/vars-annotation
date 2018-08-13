@@ -4,9 +4,7 @@ import javafx.scene.layout.Pane;
 import org.mbari.m3.vars.annotation.Initializer;
 import org.mbari.m3.vars.annotation.UIToolBox;
 import org.mbari.m3.vars.annotation.mediaplayers.*;
-import org.mbari.m3.vars.annotation.mediaplayers.macos.AVFImageCaptureService;
 import org.mbari.m3.vars.annotation.mediaplayers.macos.MacImageCaptureServiceRef;
-import org.mbari.m3.vars.annotation.mediaplayers.macos.SettingsPaneImpl;
 import org.mbari.m3.vars.annotation.model.Annotation;
 import org.mbari.m3.vars.annotation.model.Media;
 import org.mbari.m3.vars.annotation.services.ImageCaptureService;
@@ -66,6 +64,8 @@ public class MediaControlsFactoryImpl implements MediaControlsFactory {
                 imageCaptureService,
                 io,
                 () -> {
+                    // Set start and end date of a Video in the video asset manager
+                    // based on the annotations
                     List<Annotation> annotations = new ArrayList<>(toolBox.getData().getAnnotations());
                     if (annotations.size() > 1) {
                         List<Annotation> sorted = annotations.stream()
@@ -76,7 +76,7 @@ public class MediaControlsFactoryImpl implements MediaControlsFactory {
                         Instant end = sorted.get(sorted.size() - 1).getRecordedTimestamp();
                         Duration duration = Duration.between(start, end);
                         MediaService mediaService = toolBox.getServices().getMediaService();
-                        mediaService.update(media.getVideoReferenceUuid(), start, duration);
+                        mediaService.update(media.getVideoUuid(), start, duration);
                     }
                 });
 

@@ -288,13 +288,21 @@
   -fx-background-radius: 0;
 }
 
-.scroll-bar .slider {
+.scroll-bar .thumb {
   -fx-background-color: @default-compliment-color-light;
 }
 
-.scroll-bar:hover .slider {
-  -fx-background-color: @emphasis-color;
+.scroll-bar:hover .thumb {
+  -fx-background-color: @selected-color;
 }
+
+//.scroll-bar .slider {
+//  -fx-background-color: @default-compliment-color-light;
+//}
+//
+//.scroll-bar:hover .slider {
+//  -fx-background-color: @emphasis-color;
+//}
 
 .spinner, .increment-arrow-button, .decrement-arrow-button {
   -fx-background-color: @default-color;
@@ -434,6 +442,15 @@
   -fx-padding: 5 10 5 5;
 }
 
+/* --- Pref panes --- */
+.gridpane-pref {
+  -fx-hgap: 10;
+  -fx-vgap: 20;
+}
+
+.radiobutton-pref {
+  -fx-padding: 7;
+}
 
 /* --- Roweditor -- */
 .tooltip-combobox {

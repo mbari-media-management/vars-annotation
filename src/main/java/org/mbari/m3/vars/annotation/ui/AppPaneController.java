@@ -28,7 +28,9 @@ import org.mbari.m3.vars.annotation.events.UserAddedEvent;
 import org.mbari.m3.vars.annotation.events.UserChangedEvent;
 import org.mbari.m3.vars.annotation.mediaplayers.ships.MediaParams;
 import org.mbari.m3.vars.annotation.mediaplayers.ships.OpenRealTimeDialog;
-import org.mbari.m3.vars.annotation.mediaplayers.ships.RealTimeService;
+import org.mbari.m3.vars.annotation.mediaplayers.ships.OpenRealTimeService;
+import org.mbari.m3.vars.annotation.mediaplayers.vcr.OpenTapeDialog;
+import org.mbari.m3.vars.annotation.mediaplayers.vcr.OpenTapeService;
 import org.mbari.m3.vars.annotation.messages.*;
 import org.mbari.m3.vars.annotation.model.Annotation;
 import org.mbari.m3.vars.annotation.model.Media;
@@ -39,9 +41,12 @@ import org.mbari.m3.vars.annotation.services.UserService;
 import org.mbari.m3.vars.annotation.ui.annotable.AnnotationTableController;
 import org.mbari.m3.vars.annotation.ui.cbpanel.ConceptButtonPanesController;
 import org.mbari.m3.vars.annotation.ui.concepttree.SearchTreePaneController;
+import org.mbari.m3.vars.annotation.ui.deployeditor.AnnotationViewController;
 import org.mbari.m3.vars.annotation.ui.mediadialog.MediaPaneController;
 import org.mbari.m3.vars.annotation.ui.mediadialog.SelectMediaDialog;
 import org.mbari.m3.vars.annotation.ui.prefs.PreferencesDialogController;
+import org.mbari.m3.vars.annotation.ui.rectlabel.RectLabelStageController;
+import org.mbari.m3.vars.annotation.ui.shared.FilteredComboBoxDecorator;
 import org.mbari.m3.vars.annotation.ui.userdialog.CreateUserDialog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,10 +76,14 @@ public class AppPaneController {
     private final PreferencesDialogController preferencesDialogController;
     private final SelectMediaDialog selectMediaDialog;
     private final OpenRealTimeDialog realTimeDialog;
+    private final OpenTapeDialog tapeDialog;
     private ControlsPaneController controlsPaneController;
     private MediaPaneController mediaPaneController;
     private BulkEditorPaneController bulkEditorPaneController;
     private AncillaryDataPaneController ancillaryDataPaneController;
+    private RectLabelStageController rectLabelStageController;
+    private final AnnotationViewController annotationViewController;
+
     private static final String masterPaneKey =  "master-split-pane";
     private static final String topPaneKey = "top-split-pane";
     private static final String bottomPaneKey = "bottom-split-pane";
@@ -91,6 +100,9 @@ public class AppPaneController {
         realTimeDialog = new OpenRealTimeDialog(toolBox.getI18nBundle());
         realTimeDialog.getDialogPane().getStylesheets().addAll(toolBox.getStylesheets());
 
+        tapeDialog = new OpenTapeDialog(toolBox.getI18nBundle());
+        tapeDialog.getDialogPane().getStylesheets().addAll(toolBox.getStylesheets());
+
         annotationTableController = new AnnotationTableController(toolBox);
         preferencesDialogController = new PreferencesDialogController(toolBox);
         imageViewController = new ImageViewController(toolBox);
@@ -98,6 +110,9 @@ public class AppPaneController {
         mediaPaneController = MediaPaneController.newInstance();
         bulkEditorPaneController = BulkEditorPaneController.newInstance(toolBox);
         ancillaryDataPaneController = new AncillaryDataPaneController(toolBox);
+        annotationViewController = new AnnotationViewController(toolBox);
+        rectLabelStageController = new RectLabelStageController(toolBox);
+        rectLabelStageController.getStage().setOnCloseRequest(evt -> rectLabelStageController.hide());
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             saveDividerPositions(masterPaneKey, getMasterPane());
@@ -264,8 +279,22 @@ public class AppPaneController {
             createUserButton.setOnAction(e -> {
                 CreateUserDialog dialog = new CreateUserDialog(toolBox);
                 Optional<User> user = dialog.showAndWait();
+                user.ifPresent(u -> toolBox.getEventBus()
+                        .send(new UserChangedEvent(u)));
             });
+            createUserButton.setTooltip(new Tooltip(bundle.getString("apppane.toolbar.button.user")));
 
+            Text deploymentIcon = gf.createIcon(MaterialIcon.GRID_ON, "30px");
+            Button showDeploymentButton = new JFXButton();
+            showDeploymentButton.setGraphic(deploymentIcon);
+            showDeploymentButton.setOnAction(e -> annotationViewController.show());
+            showDeploymentButton.setTooltip(new Tooltip(bundle.getString("apppane.toolbar.button.deployment")));
+
+            Text rectLabelIcon = gf.createIcon(MaterialIcon.PICTURE_IN_PICTURE, "30px");
+            Button rectLabelButton = new JFXButton();
+            rectLabelButton.setGraphic(rectLabelIcon);
+            rectLabelButton.setOnAction(e -> rectLabelStageController.show());
+            rectLabelButton.setTooltip(new Tooltip(bundle.getString("apppane.toolbar.button.rectlabel")));
 
             Label videoLabel = new Label(toolBox.getI18nBundle().getString("apppane.label.media"));
             Label mediaLabel = new Label();
@@ -296,6 +325,8 @@ public class AppPaneController {
                     undoButton,
                     redoButton,
                     refreshButton,
+                    showDeploymentButton,
+                    rectLabelButton,
                     prefsButton,
                     createUserButton,
                     new Label(bundle.getString("apppane.label.user")),
@@ -330,6 +361,14 @@ public class AppPaneController {
             Text tapeIcon = gf.createIcon(MaterialIcon.LIVE_TV, "30px");
             Button tapeButton = new JFXButton(null, tapeIcon);
             tapeButton.setTooltip(new Tooltip(i18n.getString("apppane.button.open.tape")));
+            tapeButton.setOnAction(e -> {
+                tapeDialog.refresh();
+                Optional<org.mbari.m3.vars.annotation.mediaplayers.vcr.MediaParams> opt = tapeDialog.showAndWait();
+                opt.ifPresent(mediaParams -> {
+                    OpenTapeService ots = new OpenTapeService(toolBox);
+                    ots.open(mediaParams);
+                });
+            });
 
             Text realtimeIcon = gf.createIcon(MaterialIcon.DIRECTIONS_BOAT, "30px");
             Button realtimeButton = new JFXButton(null, realtimeIcon);
@@ -338,7 +377,7 @@ public class AppPaneController {
                 realTimeDialog.refresh();
                 Optional<MediaParams> opt = realTimeDialog.showAndWait();
                 opt.ifPresent(mediaParams -> {
-                    RealTimeService rts = new RealTimeService(toolBox);
+                    OpenRealTimeService rts = new OpenRealTimeService(toolBox);
                     rts.open(mediaParams);
                 });
 
@@ -357,6 +396,7 @@ public class AppPaneController {
 
             UserService userService = toolBox.getServices().getUserService();
             usersComboBox = new JFXComboBox<>();
+            new FilteredComboBoxDecorator<>(usersComboBox, FilteredComboBoxDecorator.CONTAINS_CHARS_IN_ORDER);
             Comparator<String> sorter = Comparator.comparing(String::toString, String.CASE_INSENSITIVE_ORDER);
 
             // Listen to UserAddedEvent and add it to the combobox

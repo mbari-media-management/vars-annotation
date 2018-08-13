@@ -35,6 +35,7 @@ import java.io.*;
 import java.net.URL;
 import java.security.Key;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.UUID;
 import java.util.function.BiFunction;
@@ -237,6 +238,17 @@ public class AppController {
         else if (idx instanceof Duration) {
             mediaPlayer.seek((Duration) idx);
         }
+        else if (idx instanceof Instant) {
+            Media media = toolBox.getData().getMedia();
+            if (media != null) {
+                Instant startTime = media.getStartTimestamp();
+                if (startTime != null) {
+                    Instant time = (Instant) idx;
+                    Duration elapsedTime = Duration.between(startTime, time);
+                    mediaPlayer.seek(elapsedTime);
+                }
+            }
+        }
     }
 
     private void changeMedia(Media newMedia) {
@@ -251,7 +263,9 @@ public class AppController {
         // Load new data
         data.setMedia(newMedia);
         AnnotationServiceDecorator decorator = new AnnotationServiceDecorator(toolBox);
-        decorator.findAnnotations(newMedia.getVideoReferenceUuid());
+        if (newMedia != null) {
+            decorator.findAnnotations(newMedia.getVideoReferenceUuid());
+        }
 
 
     }
@@ -263,6 +277,14 @@ public class AppController {
             if (media != null) {
                 UUID uuid = media.getVideoReferenceUuid();
 
+                /*
+                  1. Find medias for your deployment that overlap the one with
+                     the uuid you provided
+                  2. Convert those medias to a list of their UUIDs
+                  3. Pass that list to findConcurrentAnnotations. That will
+                     get all annotations, from the overlapping media, that
+                     overlap with the timebounds of your current media
+                 */
                 toolBox.getServices()
                         .getMediaService()
                         .findConcurrentByVideoReferenceUuid(uuid)
