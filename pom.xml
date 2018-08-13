@@ -351,44 +351,44 @@
                 <version>1.6.0</version>
                 <!-- Generate app.xml manifest -->
                 <executions>
-                    <execution>
-                        <id>create-manifest</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>java</goal>
-                        </goals>
-                        <configuration>
-                            <mainClass>fxlauncher.CreateManifest</mainClass>
-                            <arguments>
-                                <argument>${app.url}</argument>
-                                <argument>${app.mainClass}</argument>
-                                <argument>${app.dir}</argument>
-                                <!--<argument>&#45;&#45;cache-dir=${app.cacheDir}</argument>-->
-                                <argument>
-                                    --accept-downgrade=${app.acceptDowngrade}
-                                </argument>
-                                <argument>--include-extensions=jpg</argument>
-                                <argument>${app.parameters}</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
+                    <!--<execution>-->
+                        <!--<id>create-manifest</id>-->
+                        <!--<phase>package</phase>-->
+                        <!--<goals>-->
+                            <!--<goal>java</goal>-->
+                        <!--</goals>-->
+                        <!--<configuration>-->
+                            <!--<mainClass>fxlauncher.CreateManifest</mainClass>-->
+                            <!--<arguments>-->
+                                <!--<argument>${app.url}</argument>-->
+                                <!--<argument>${app.mainClass}</argument>-->
+                                <!--<argument>${app.dir}</argument>-->
+                                <!--&lt;!&ndash;<argument>&#45;&#45;cache-dir=${app.cacheDir}</argument>&ndash;&gt;-->
+                                <!--<argument>-->
+                                    <!--&#45;&#45;accept-downgrade=${app.acceptDowngrade}-->
+                                <!--</argument>-->
+                                <!--<argument>&#45;&#45;include-extensions=jpg</argument>-->
+                                <!--<argument>${app.parameters}</argument>-->
+                            <!--</arguments>-->
+                        <!--</configuration>-->
+                    <!--</execution>-->
                     <!-- Embed app.xml inside fxlauncher.xml so we don't need to reference app.xml to start the app -->
-                    <execution>
-                        <id>embed-manifest-in-launcher</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>jar</executable>
-                            <workingDirectory>${app.dir}</workingDirectory>
-                            <arguments>
-                                <argument>uf</argument>
-                                <argument>fxlauncher.jar</argument>
-                                <argument>app.xml</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
+                    <!--<execution>-->
+                        <!--<id>embed-manifest-in-launcher</id>-->
+                        <!--<phase>package</phase>-->
+                        <!--<goals>-->
+                            <!--<goal>exec</goal>-->
+                        <!--</goals>-->
+                        <!--<configuration>-->
+                            <!--<executable>jar</executable>-->
+                            <!--<workingDirectory>${app.dir}</workingDirectory>-->
+                            <!--<arguments>-->
+                                <!--<argument>uf</argument>-->
+                                <!--<argument>fxlauncher.jar</argument>-->
+                                <!--<argument>app.xml</argument>-->
+                            <!--</arguments>-->
+                        <!--</configuration>-->
+                    <!--</execution>-->
                     <!-- Optional step to include custom UI, see https://github.com/edvin/fxlauncher-custom-ui -->
                     <!--<execution>-->
                     <!--<id>embed-custom-ui-in-launcher</id>-->
@@ -476,7 +476,7 @@
             <plugin>
                 <groupId>com.zenjava</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
-                <version>8.6.0</version>
+                <version>8.9.0-SNAPSHOT</version>
                 <configuration>
                     <mainClass>${app.mainClass}</mainClass>
                     <verbose>true</verbose>
@@ -528,6 +528,16 @@
             </plugin>
         </plugins>
     </build>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>oss-sonatype-snapshots</id>
+            <url>https://oss.sonatype.org/content/groups/public/</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
 
     <repositories>
         <repository>
