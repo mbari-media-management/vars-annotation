@@ -32,8 +32,11 @@ public class FramecaptureBC extends AbstractBC {
         Text icon = iconFactory.createIcon(MaterialIcon.ADD_A_PHOTO, "30px");
         initializeButton(tooltip, icon);
         Observable<Object> observable = toolBox.getEventBus().toObserverable();
-        observable.ofType((MediaPlayerChangedEvent.class))
+        observable.ofType(MediaPlayerChangedEvent.class)
                 .subscribe(m -> checkEnable());
+
+        // FIXME: Framecapture will fail if the annotation already has an image
+        // as the database will not except duplicate
 
         // Listen for things other than the button to trigger a new annotation
         toolBox.getEventBus()

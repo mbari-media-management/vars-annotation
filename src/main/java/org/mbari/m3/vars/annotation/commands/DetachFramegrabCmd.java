@@ -18,7 +18,6 @@ import org.mbari.m3.vars.annotation.util.AsyncUtils;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -29,7 +28,6 @@ import java.util.stream.Collectors;
 public class DetachFramegrabCmd implements Command {
 
     private final Collection<Annotation> originalAnnotations;
-    private final Collection<Annotation> modifiedAnnotations = new CopyOnWriteArraySet<>();
     private Collection<Image> originalImages = new CopyOnWriteArrayList<>();
 
     public DetachFramegrabCmd(Collection<Annotation> originalAnnotations) {
@@ -38,6 +36,13 @@ public class DetachFramegrabCmd implements Command {
         this.originalAnnotations = ImmutableList.copyOf(originalAnnotations);
     }
 
+    /**
+     * Looks up all the images that need to be deleted from the annotations.
+     * The results are cached so that we don't need to look them up again through
+     * subseguent apply/unapply cycles.
+     * @param toolBox
+     * @return The images to delete
+     */
     private CompletableFuture<Collection<Image>> findImagesToDelete(UIToolBox toolBox) {
 
         AnnotationService annotationService = toolBox.getServices().getAnnotationService();
@@ -95,31 +100,21 @@ public class DetachFramegrabCmd implements Command {
         AnnotationService annotationService = toolBox.getServices().getAnnotationService();
         AnnotationServiceDecorator decorator = new AnnotationServiceDecorator(toolBox);
 
-        // Fn to delete an image, them look up related
-        Function<Image, CompletableFuture<List<Annotation>>> deleteImageAndFindAnnotationsFn =
-                image -> annotationService.deleteImage(image.getImageReferenceUuid())
-                .thenCompose(b -> annotationService.findByImageReference(image.getImageReferenceUuid()));
 
-        // Fn to add refreshed annotations to modifiedAnnotations and refresh view
-        Consumer<List<Annotation>> updateAnnotationsFn = annos -> {
-            Set<UUID> observationUuids = annos.stream()
-                    .map(Annotation::getObservationUuid)
-                    .collect(Collectors.toSet());
-            modifiedAnnotations.addAll(annos);
-            decorator.refreshAnnotationsView(observationUuids);
-        };
+        Function<Image, CompletableFuture> deleteImageFn = image ->
+                annotationService.deleteImage(image.getImageReferenceUuid());
 
-        CompletableFuture<Collection<Image>> f = findImagesToDelete(toolBox);
+        findImagesToDelete(toolBox)
+                .thenCompose(images -> decorator.findAnnotationsForImages(images)
+                        .thenCompose(annotations -> AsyncUtils.completeAll(images, deleteImageFn).thenApply(v -> annotations))
+                        .thenAccept(annotations -> {
+                            Set<UUID> observationUuids = annotations.stream()
+                                    .map(Annotation::getObservationUuid)
+                                    .collect(Collectors.toSet());
+                            decorator.refreshAnnotationsView(observationUuids);
+                        })
+                );
 
-        f.whenComplete((images, exception) -> {
-            if (exception != null) {
-                Observable<List<Annotation>> observable = AsyncUtils.observeAll(images, deleteImageAndFindAnnotationsFn);
-                observable.subscribe(updateAnnotationsFn, t -> showAlert(t, toolBox));
-            }
-            else {
-                showAlert(exception, toolBox);
-            }
-        });
 
     }
 
@@ -128,12 +123,32 @@ public class DetachFramegrabCmd implements Command {
         AnnotationService annotationService = toolBox.getServices().getAnnotationService();
         AnnotationServiceDecorator decorator = new AnnotationServiceDecorator(toolBox);
 
-//        Function<Image, CompletableFuture<List<Annotation>>> createImageAndFindAnnotationFn
-//        originalImages.forEach(annotationService::createImage);
+        // Create an iamge and
+        Function<Image, CompletableFuture<List<Annotation>>> createImageAndFindAnnotationFn =
+                image -> annotationService.createImage(image)
+                        .thenCompose(image1 -> annotationService.findByImageReference(image1.getImageReferenceUuid()));
+
+
+        AsyncUtils.collectAll(originalImages, createImageAndFindAnnotationFn)
+                .whenComplete((annotationLists, exception) -> {
+                    List<Annotation> annotations = annotationLists.stream()
+                            .flatMap(List::stream)
+                            .collect(Collectors.toList());
+                    if (exception == null) {
+                        Set<UUID> observationUuids = annotations.stream()
+                                .map(Annotation::getObservationUuid)
+                                .collect(Collectors.toSet());
+                        decorator.refreshAnnotationsView(observationUuids);
+                    }
+                    else {
+                        showAlert(exception, toolBox);
+                    }
+                });
     }
 
     @Override
     public String getDescription() {
-        return null;
+        int size = originalAnnotations == null ? 0 : originalAnnotations.size();
+        return "Detach images from " + size + " annotations";
     }
 }
