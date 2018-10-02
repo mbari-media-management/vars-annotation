@@ -10,7 +10,6 @@ import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.Pane;
 import org.mbari.m3.vars.annotation.EventBus;
-import org.mbari.m3.vars.annotation.commands.CreateAnnotationCmd;
 import org.mbari.m3.vars.annotation.commands.CreateAnnotationFromConceptCmd;
 import org.mbari.m3.vars.annotation.messages.ShowConceptInTreeViewMsg;
 import org.mbari.m3.vars.annotation.services.ConceptService;
