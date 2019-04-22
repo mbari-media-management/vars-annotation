@@ -10,8 +10,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * @author Brian Schlining
@@ -37,7 +36,6 @@ public class CombinedMediaAnnotationDecorator {
      */
     public CompletableFuture<List<Annotation>>  findAllAnnotationsInDeployment(String videoSequenceName) {
 
-
         CompletableFuture<List<Annotation>> cf = new CompletableFuture<>();
 
         MediaService mediaService = toolBox.getServices().getMediaService();
@@ -53,7 +51,6 @@ public class CombinedMediaAnnotationDecorator {
                     medias.forEach(media -> {
                         CompletableFuture<List<Annotation>> f = annotationService.findAnnotations(media.getVideoReferenceUuid());
                         try {
-                            // TODO move time to config file
                             List<Annotation> annotations = f.get(chunkTimeout.toMillis(), TimeUnit.MILLISECONDS);
                             allAnnotations.addAll(annotations);
                         } catch (Exception e) {

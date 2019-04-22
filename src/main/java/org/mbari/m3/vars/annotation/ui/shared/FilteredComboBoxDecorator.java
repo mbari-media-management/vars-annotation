@@ -1,5 +1,6 @@
 package org.mbari.m3.vars.annotation.ui.shared;
 
+import com.sun.javafx.scene.control.skin.ComboBoxListViewSkin;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -19,6 +20,7 @@ import org.mbari.m3.vars.annotation.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import java.security.Key;
 import java.util.function.Predicate;
 
@@ -32,7 +34,7 @@ public class FilteredComboBoxDecorator<T>  {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private static final String EMPTY = "";
     private StringProperty filter = new SimpleStringProperty(EMPTY);
-    private AutoCompleteComparator<T> comparator = (typedText, objectToCompare) -> false;
+    private AutoCompleteComparator<T> comparator;
     private volatile FilteredList<T> filteredItems;
     private final ComboBox<T> comboBox;
 
@@ -63,6 +65,18 @@ public class FilteredComboBoxDecorator<T>  {
                 comboBox.setItems(filteredItems);
             }
         });
+
+        // HACK workaround for bug that consumes spaces in combobox
+        // this may be different in JDK 9+
+        // https://stackoverflow.com/questions/50013972/how-to-prevent-closing-of-autocompletecombobox-popupmenu-on-space-key-press-in-j
+        ComboBoxListViewSkin<T> skin = new ComboBoxListViewSkin<>(comboBox);
+        skin.getPopupContent().addEventFilter(KeyEvent.ANY, e -> {
+            if (e.getCode() == KeyCode.SPACE) {
+                e.consume();
+            }
+        });
+        comboBox.setSkin(skin);
+
     }
 
 
@@ -96,7 +110,11 @@ public class FilteredComboBoxDecorator<T>  {
     }
 
     private void handleOnHiding(Event e) {
+        T value = comboBox.getValue();
         filter.setValue(EMPTY);
+        if (value != null) {
+            comboBox.getSelectionModel().select(value);
+        }
         comboBox.getTooltip().hide();
         restoreOriginalItems();
     }
@@ -105,7 +123,7 @@ public class FilteredComboBoxDecorator<T>  {
         KeyCode code = keyEvent.getCode();
         if (!keyEvent.isMetaDown()) {
             String filterValue = filter.get();
-            //log.debug("Handling KeyCode = " + code);
+            log.debug("Handling KeyCode = " + code);
             if (code.isLetterKey() || code.isDigitKey() || code == KeyCode.MINUS) {
                 filterValue += keyEvent.getText();
             } else if ((code == KeyCode.BACK_SPACE) && (filterValue.length() > 0)) {
@@ -120,7 +138,7 @@ public class FilteredComboBoxDecorator<T>  {
         }
     }
 
-    public void setComparator(AutoCompleteComparator<T> comparator) {
+    public void setComparator(@Nonnull AutoCompleteComparator<T> comparator) {
         this.comparator = comparator;
         handleFilterChanged(filter.get());
     }

@@ -21,12 +21,16 @@ package org.mbari.m3.vars.annotation;
 import com.google.common.collect.Lists;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 
+import javafx.scene.control.Label;
+import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 import org.mbari.m3.vars.annotation.commands.CommandManager;
 import org.mbari.m3.vars.annotation.util.ActiveAppBeacon;
 import org.mbari.m3.vars.annotation.util.ActiveAppPinger;
+import org.mbari.m3.vars.annotation.util.JFXUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,7 +79,12 @@ public class App extends Application {
     public void start(final Stage primaryStage) throws Exception {
 
         if (ActiveAppPinger.pingAll(BEACON_PORTS, BEACON_MESSAGE)) {
+            // Must show stage before showing alert
+            primaryStage.setScene(new Scene(new Label("VARS ...")));
+            primaryStage.show();
             Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.initOwner(primaryStage);
+            // TODO alert params should be in i18n prop file
             alert.setTitle("VARS Information");
             alert.setHeaderText("VARS is already running");
             alert.setContentText("An instance of VARS is already running. Exiting ...");
@@ -85,7 +94,12 @@ public class App extends Application {
             System.exit(0);
         }
         else if (Initializer.getSettingsDirectory() == null) {
+            // Must show stage before showing alert
+            primaryStage.setScene(new Scene(new Label("VARS ...")));
+            primaryStage.show();
             Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.initOwner(primaryStage);
+            // TODO alert params should be in i18n prop file
             alert.setTitle("VARS Error");
             alert.setHeaderText("Unable to create a settings directory ");
             alert.setContentText("VARS failed to create a directory for writing temporary information.");
@@ -98,27 +112,15 @@ public class App extends Application {
             activeAppBeacon = new ActiveAppBeacon(BEACON_PORTS, BEACON_MESSAGE);
         }
 
-        // Load size from local prefs
-        Preferences prefs = Preferences.userNodeForPackage(getClass());
-        double width = prefs.getDouble(WIDTH_KEY, 1000D);
-        double height = prefs.getDouble(HEIGHT_KEY, 800D);
-
-        // ON rare occasions the user sets one of these to 0 and are never
-        // able to see the annotation window again. Make sure this doesn't happen.
-        if (width < 200) {
-            width = 200;
-        }
-        if (height < 200) {
-            height = 200;
-        }
-
         primaryStage.setScene(appController.getScene());
-        primaryStage.setWidth(width);
-        primaryStage.setHeight(height);
+        toolBox.primaryStageProperty().set(primaryStage);
+        final Class clazz = getClass();
+
+        // Load size from local prefs
+        JFXUtilities.loadStageSize(primaryStage, clazz);
         primaryStage.setOnCloseRequest(e -> {
             // Save size on exit
-            prefs.putDouble(WIDTH_KEY, primaryStage.getWidth());
-            prefs.putDouble(HEIGHT_KEY, primaryStage.getHeight());
+            JFXUtilities.saveStageSize(primaryStage, clazz);
             Platform.exit();
             System.exit(0);
         });

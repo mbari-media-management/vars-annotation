@@ -1,9 +1,8 @@
 package org.mbari.m3.vars.annotation.util;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * @author Brian Schlining
@@ -20,7 +19,10 @@ public class ListUtils {
      * @param <T>
      * @return
      */
-    public static <T> Optional<T> search(String key, List<T> items, int startIdx, Function<T, String> fn) {
+    public static <T> Optional<T> search(String key,
+                                         List<T> items,
+                                         int startIdx,
+                                         Function<T, String> fn) {
         if (startIdx >= items.size()) {
             startIdx = 0;
         }
@@ -34,5 +36,33 @@ public class ListUtils {
                 .filter(t -> fn.apply(t).contains(key))
                 .findFirst();
     }
+
+    public static <T> List<T> union(List<T> list1, List<T> list2) {
+        Set<T> set = new HashSet<>();
+
+        set.addAll(list1);
+        set.addAll(list2);
+
+        return new ArrayList<>(set);
+    }
+
+    public static <T> List<T> intersection(Collection<T> list1, Collection<T> list2) {
+//        return list1.stream()
+//                .distinct()
+//                .filter(list2::contains)
+//                .collect(Collectors.toList());
+
+        List<T> list = new ArrayList<>();
+
+        for (T t : list1) {
+            if(list2.contains(t)) {
+                list.add(t);
+            }
+        }
+
+        return list;
+    }
+
+
 
 }

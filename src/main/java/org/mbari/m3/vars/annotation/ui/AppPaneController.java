@@ -48,6 +48,7 @@ import org.mbari.m3.vars.annotation.ui.prefs.PreferencesDialogController;
 import org.mbari.m3.vars.annotation.ui.rectlabel.RectLabelStageController;
 import org.mbari.m3.vars.annotation.ui.shared.FilteredComboBoxDecorator;
 import org.mbari.m3.vars.annotation.ui.userdialog.CreateUserDialog;
+import org.mbari.m3.vars.annotation.util.JFXUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,20 +96,32 @@ public class AppPaneController {
         selectMediaDialog = new SelectMediaDialog(toolBox.getServices().getAnnotationService(),
                 toolBox.getServices().getMediaService(),
                 toolBox.getI18nBundle());
-        selectMediaDialog.getDialogPane().getStylesheets().addAll(toolBox.getStylesheets());
+        selectMediaDialog.getDialogPane()
+                .getStylesheets()
+                .addAll(toolBox.getStylesheets());
+        selectMediaDialog.initOwner(toolBox.getPrimaryStage());
 
         realTimeDialog = new OpenRealTimeDialog(toolBox.getI18nBundle());
-        realTimeDialog.getDialogPane().getStylesheets().addAll(toolBox.getStylesheets());
+        realTimeDialog.getDialogPane()
+                .getStylesheets()
+                .addAll(toolBox.getStylesheets());
+        realTimeDialog.initOwner(toolBox.getPrimaryStage());
 
         tapeDialog = new OpenTapeDialog(toolBox.getI18nBundle());
-        tapeDialog.getDialogPane().getStylesheets().addAll(toolBox.getStylesheets());
+        tapeDialog.getDialogPane()
+                .getStylesheets()
+                .addAll(toolBox.getStylesheets());
+        tapeDialog.initOwner(toolBox.getPrimaryStage());
 
         annotationTableController = new AnnotationTableController(toolBox);
         preferencesDialogController = new PreferencesDialogController(toolBox);
         imageViewController = new ImageViewController(toolBox);
         controlsPaneController = new ControlsPaneController(toolBox);
         mediaPaneController = MediaPaneController.newInstance();
-        bulkEditorPaneController = BulkEditorPaneController.newInstance(toolBox);
+        bulkEditorPaneController = BulkEditorPaneController.newInstance(toolBox,
+                toolBox.getData().getAnnotations(),
+                toolBox.getData().getSelectedAnnotations(),
+                toolBox.getEventBus());
         ancillaryDataPaneController = new AncillaryDataPaneController(toolBox);
         annotationViewController = new AnnotationViewController(toolBox);
         rectLabelStageController = new RectLabelStageController(toolBox);
@@ -211,10 +224,10 @@ public class AppPaneController {
                         }
                     });
 
-            Tab bulkEditTab = new Tab("Bulk Editor", bulkEditorPaneController.getRoot());
+            Tab bulkEditTab = new Tab("Bulk Editor", new ScrollPane(bulkEditorPaneController.getRoot()));
             bulkEditTab.setClosable(false);
 
-            Tab mediaTab = new Tab("Media", mediaPaneController.getRoot());
+            Tab mediaTab = new Tab("Media", new ScrollPane(mediaPaneController.getRoot()));
             mediaTab.setClosable(false);
             observable.ofType(AnnotationsSelectedEvent.class)
                     .subscribe(e -> showMediaOfSelectedRow(e.get()));
@@ -248,6 +261,14 @@ public class AppPaneController {
             openButton.setGraphic(openIcon);
             openButton.setOnAction(e -> getOpenPopOver().show(openButton));
             openButton.setTooltip(new Tooltip(bundle.getString("apppane.toolbar.button.open")));
+            JFXUtilities.attractAttention(openButton);
+            toolBox.getData()
+                    .mediaProperty()
+                    .addListener((obs, oldv, newv) -> {
+                        if (newv != null) {
+                            JFXUtilities.removeAttention(openButton);
+                        }
+                    });
 
             Text undoIcon = gf.createIcon(MaterialIcon.UNDO, "30px");
             Button undoButton = new JFXButton();
@@ -454,7 +475,10 @@ public class AppPaneController {
             observable.ofType(SetProgress.class)
                     .subscribe(s -> Platform.runLater(() -> utilityPane.setProgress(s.getProgress())));
             observable.ofType(HideProgress.class)
-                    .subscribe(s -> Platform.runLater(() -> utilityPane.setProgress(0.0)));
+                    .subscribe(s -> {
+                        log.warn("HideProgress received");
+                        Platform.runLater(() -> utilityPane.setProgress(0.0));
+                    });
             observable.ofType(SetStatusBarMsg.class)
                     .subscribe(s -> Platform.runLater(() -> utilityPane.setText(s.getMsg())));
 
@@ -467,11 +491,9 @@ public class AppPaneController {
             toolBox.getServices()
                     .getAnnotationService()
                     .findGroups()
-                    .thenAccept(groups -> {
-                        Platform.runLater(() -> {
-                            groupCombobox.getItems().addAll(groups);
-                        });
-                    });
+                    .thenAccept(groups ->
+                        Platform.runLater(() ->
+                            groupCombobox.getItems().addAll(groups)));
             groupCombobox.getSelectionModel()
                     .selectedItemProperty()
                     .addListener((obs, oldv, newv) -> toolBox.getData().setGroup(newv));

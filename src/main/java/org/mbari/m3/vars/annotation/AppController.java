@@ -1,10 +1,8 @@
 package org.mbari.m3.vars.annotation;
 
 import io.reactivex.Observable;
-import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
 import javafx.scene.control.TableView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
@@ -33,12 +31,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.URL;
-import java.security.Key;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.UUID;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 /**
@@ -70,76 +66,8 @@ public class AppController {
             scene.getStylesheets()
                     .addAll(toolBox.getStylesheets());
 
-            KeyCombination.Modifier osModifier = SystemUtilities.isMacOS() ?
-                    KeyCombination.META_DOWN : KeyCombination.CONTROL_DOWN;
+            new KeyMapping(toolBox, scene, paneController);
 
-            KeyCodeCombination spaceCombo = new KeyCodeCombination(KeyCode.SPACE, KeyCombination.CONTROL_DOWN);
-            KeyCodeCombination downCombo = new KeyCodeCombination(KeyCode.DOWN, osModifier);
-            KeyCodeCombination upCombo = new KeyCodeCombination(KeyCode.UP, osModifier);
-            KeyCodeCombination nCombo = new KeyCodeCombination(KeyCode.N, osModifier);
-            KeyCodeCombination cCombo = new KeyCodeCombination(KeyCode.G, osModifier);
-            KeyCodeCombination tCombo = new KeyCodeCombination(KeyCode.T, osModifier);
-            KeyCodeCombination fCombo = new KeyCodeCombination(KeyCode.F, osModifier);
-            KeyCodeCombination deleteCombo = new KeyCodeCombination(KeyCode.DELETE, osModifier);
-
-            // --- Configure global shortcuts
-            scene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
-
-                if (spaceCombo.match(e)) {
-                    MediaPlayer<? extends VideoState, ? extends VideoError> mediaPlayer = toolBox.getMediaPlayer();
-                    if (mediaPlayer != null) {
-                        mediaPlayer.requestIsPlaying()
-                                .thenAccept(playing -> {
-                                    if (playing) {
-                                        mediaPlayer.stop();
-                                    } else {
-                                        mediaPlayer.play();
-                                    }
-                                });
-                    }
-                    e.consume();
-                }
-                else if (downCombo.match(e)) {
-                    TableView.TableViewSelectionModel<Annotation> selectionModel = paneController.getAnnotationTableController()
-                            .getTableView()
-                            .getSelectionModel();
-
-                    int idx = selectionModel.getSelectedIndex();
-                    selectionModel.clearSelection();
-                    selectionModel.select(idx + 1);
-                    e.consume();
-                }
-                else if (upCombo.match(e)) {
-                    TableView.TableViewSelectionModel<Annotation> selectionModel = paneController.getAnnotationTableController()
-                            .getTableView()
-                            .getSelectionModel();
-
-                    int idx = selectionModel.getSelectedIndex();
-                    selectionModel.clearSelection();
-                    selectionModel.select(idx - 1);
-                    e.consume();
-                }
-                else if (nCombo.match(e)) {
-                    toolBox.getEventBus().send(new NewAnnotationMsg());
-                    e.consume();
-                }
-                else if(cCombo.match(e)) {
-                    toolBox.getEventBus().send(new CopyAnnotationMsg());
-                    e.consume();
-                }
-                else if (tCombo.match(e)) {
-                    toolBox.getEventBus().send(new DuplicateAnnotationMsg());
-                    e.consume();
-                }
-                else if (fCombo.match(e)) {
-                    toolBox.getEventBus().send(new FramecaptureMsg());
-                    e.consume();
-                }
-                else if (deleteCombo.match(e)) {
-                    toolBox.getEventBus().send(new DeleteAnnotationsMsg());
-                    e.consume();
-                }
-            });
         }
         return scene;
 

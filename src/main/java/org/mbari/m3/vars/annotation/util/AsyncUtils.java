@@ -1,17 +1,20 @@
 package org.mbari.m3.vars.annotation.util;
 
+import io.reactivex.Flowable;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.Collection;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Brian Schlining
@@ -42,22 +45,16 @@ public class AsyncUtils {
      * @return An rx java Observable
      */
     public static <T> Observable<T> observe(CompletableFuture<T> future) {
-        return Observable.create(subscriber ->
-            future.whenComplete((value, exception) -> {
-                if (exception != null) {
-                    subscriber.onError(exception);
+        return Observable.fromFuture(future);
                 }
-                else {
-                    subscriber.onNext(value);
-                    subscriber.onComplete();
-                }
-            }));
-    }
 
     /**
      * For each item in a collection, apply a function that returns a future.
      * As the futures complete, the output will be published to observer returned
-     * by this function.
+     * by this function. Note that the returned observable will not emit
+     * results until subscribed to (i.e a cold observerable). So even if the
+     * future completes before you subscribe to it you will be able to get
+     * results
      *
      * @param items The items to process
      * @param fn The function to apply to each item in `items`
@@ -68,25 +65,18 @@ public class AsyncUtils {
     public static <T, R> Observable<R> observeAll(Collection<T> items,
                                                   Function<T, CompletableFuture<R>> fn) {
 
-        PublishSubject<R> subject = PublishSubject.create();
+        // Apply the function to each item
+        List<CompletableFuture<R>> futures = items.stream()
+                .map(fn)
+                .collect(Collectors.toList());
 
-        CompletableFuture[] futures = items.stream()
-                .map(fn)                            // Apply function: item -> future
-                .map(AsyncUtils::observe)           // Convert future to observable
-                .map(obs -> obs.subscribe(subject::onNext, subject::onError)) // Pipe results to subject
-                .toArray(CompletableFuture[]::new); // Convert to array for `allOf` consumption
-
-        // Complete the observer when all futures are finished or an error occurs
-        CompletableFuture.allOf(futures).whenComplete((v, ex) -> {
-            if (ex != null) {
-                subject.onError(ex);
-            }
-            else {
-                subject.onComplete();
-            }
+        // Return a cold observable!
+        return Observable.defer(() -> {
+            List<Observable<R>> observables = futures.stream()
+                    .map(AsyncUtils::observe)
+                    .collect(Collectors.toList());
+            return Observable.concat(observables);
         });
-
-        return subject;
 
     }
 

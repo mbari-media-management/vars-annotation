@@ -2,8 +2,6 @@ package org.mbari.m3.vars.annotation.commands;
 
 import com.google.common.base.Preconditions;
 import org.mbari.m3.vars.annotation.UIToolBox;
-import org.mbari.m3.vars.annotation.events.AnnotationsChangedEvent;
-import org.mbari.m3.vars.annotation.model.Annotation;
 import org.mbari.m3.vars.annotation.model.Association;
 import org.mbari.m3.vars.annotation.services.AnnotationService;
 import org.mbari.m3.vars.annotation.ui.AnnotationServiceDecorator;
@@ -11,7 +9,6 @@ import org.mbari.m3.vars.annotation.ui.AnnotationServiceDecorator;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
 /**

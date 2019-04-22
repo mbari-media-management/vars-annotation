@@ -2,8 +2,6 @@ package org.mbari.m3.vars.annotation.commands;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import io.reactivex.Observable;
-import io.reactivex.functions.Consumer;
 import org.mbari.m3.vars.annotation.EventBus;
 import org.mbari.m3.vars.annotation.UIToolBox;
 import org.mbari.m3.vars.annotation.messages.ShowFatalErrorAlert;

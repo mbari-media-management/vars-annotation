@@ -6,7 +6,6 @@ import com.jfoenix.controls.JFXTextField;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
@@ -35,6 +34,7 @@ import org.mbari.m3.vars.annotation.model.*;
 import org.mbari.m3.vars.annotation.services.ConceptService;
 import org.mbari.m3.vars.annotation.ui.shared.FilteredComboBoxDecorator;
 import org.mbari.m3.vars.annotation.ui.shared.HierarchicalConceptComboBoxDecorator;
+import org.mbari.m3.vars.annotation.util.FXMLUtils;
 import org.mbari.m3.vars.annotation.util.ListUtils;
 
 public class AssociationEditorPaneController {
@@ -83,7 +83,7 @@ public class AssociationEditorPaneController {
     private final EventBus eventBus = toolBox.getEventBus();
     private volatile Annotation annotation;
     private volatile Association selectedAssociation;
-    private static final ConceptAssociationTemplate nil = new ConceptAssociationTemplate(Association.VALUE_NIL, Association.VALUE_NIL, Association.VALUE_NIL);
+    private static final ConceptAssociationTemplate nil = ConceptAssociationTemplate.NIL;
 
 
     @FXML
@@ -275,15 +275,7 @@ public class AssociationEditorPaneController {
 
     public static AssociationEditorPaneController newInstance() {
 
-        final ResourceBundle bundle = Initializer.getToolBox().getI18nBundle();
-        FXMLLoader loader = new FXMLLoader(AssociationEditorPaneController.class
-                .getResource("/fxml/AssociationEditorPane.fxml"), bundle);
-        try {
-            loader.load();
-            return loader.getController();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to load AssociationEditorPane from FXML", e);
-        }
-
+        return FXMLUtils.newInstance(AssociationEditorPaneController.class,
+                "/fxml/AssociationEditorPane.fxml");
     }
 }

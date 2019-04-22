@@ -18,6 +18,7 @@ import org.mbari.util.Tuple2;
 import org.mbari.vcr4j.VideoIndex;
 
 import javax.swing.text.html.Option;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.concurrent.CompletableFuture;
@@ -37,13 +38,13 @@ public class CreateAnnotationFromConceptCmd implements Command {
     }
 
     private void createAnnotation(UIToolBox toolBox, String primaryConcept, VideoIndex videoIndex) {
-        Annotation a0 = CommandUtil.buildAnnotation(toolBox.getData(), concept, videoIndex);
+        Annotation a0 = CommandUtil.buildAnnotation(toolBox.getData(), primaryConcept, videoIndex);
 
         Observable<Annotation> observable = AsyncUtils.observe(toolBox.getServices()
                 .getAnnotationService()
                 .createAnnotation(a0));
 
-        observable.filter(a -> a != null)
+        observable.filter(Objects::nonNull)
                 .subscribe(a -> {
                         this.annotation = a;
                         EventBus eventBus = toolBox.getEventBus();
@@ -51,17 +52,6 @@ public class CreateAnnotationFromConceptCmd implements Command {
                         eventBus.send(new AnnotationsSelectedEvent(a));
                     }, t -> sendAlertMsg(toolBox, t));
 
-//        toolBox.getServices()
-//                .getAnnotationService()
-//                .createAnnotation(a0)
-//                .thenAccept(a1 -> {
-//                    this.annotation = a1;
-//                    if (a1 != null) {
-//                        EventBus eventBus = toolBox.getEventBus();
-//                        eventBus.send(new AnnotationsAddedEvent(a1));
-//                        eventBus.send(new AnnotationsSelectedEvent(a1));
-//                    }
-//                });
     }
 
     private void sendAlertMsg(UIToolBox toolBox, Throwable t) {
@@ -82,11 +72,11 @@ public class CreateAnnotationFromConceptCmd implements Command {
 
     @Override
     public void apply(UIToolBox toolBox) {
+        Observable<VideoIndex> videoIndexObservable = AsyncUtils.observe(toolBox.getMediaPlayer()
+                .requestVideoIndex());
         Observable<Optional<ConceptDetails>> conceptObservable = AsyncUtils.observe(toolBox.getServices()
                 .getConceptService()
                 .findDetails(concept));
-        Observable<VideoIndex> videoIndexObservable = AsyncUtils.observe(toolBox.getMediaPlayer()
-                .requestVideoIndex());
         Observable<CreateDatum> lookupObservable = Observable.combineLatest(conceptObservable,
                 videoIndexObservable,
                 CreateDatum::new);
@@ -95,9 +85,7 @@ public class CreateAnnotationFromConceptCmd implements Command {
                 .subscribe(cd -> createAnnotation(toolBox,
                         cd.conceptDetails.get().getName(),
                         cd.videoIndex),
-                        throwable -> sendAlertMsg(toolBox, throwable),
-                        () -> {});
-
+                        throwable -> sendAlertMsg(toolBox, throwable));
     }
 
 

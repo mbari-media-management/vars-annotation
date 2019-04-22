@@ -3,12 +3,10 @@ package org.mbari.m3.vars.annotation.services.annosaurus.v1;
 import org.mbari.m3.vars.annotation.model.AncillaryData;
 import org.mbari.m3.vars.annotation.model.Annotation;
 import org.mbari.m3.vars.annotation.model.AnnotationCount;
-import org.mbari.m3.vars.annotation.model.ImageReference;
 import org.mbari.vcr4j.time.Timecode;
 import retrofit2.Call;
 import retrofit2.http.*;
 
-import java.net.URL;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
@@ -25,7 +23,8 @@ public interface AnnoWebService {
     @GET("annotations/{uuid}")
     Call<Annotation> findByUuid(@Path("uuid") UUID observationUuid);
 
-    @GET("annotations/videoreference/{uuid}")
+    //@GET("annotations/videoreference/{uuid}")
+    @GET("annotations/videoreference/chunked/{uuid}")
     Call<List<Annotation>> findByVideoReferenceUuid(@Path("uuid") UUID uuid,
                                                     @Query("limit") Long limit,
                                                     @Query("offset") Long offset);
@@ -80,6 +79,7 @@ public interface AnnoWebService {
     @PUT("annotations/bulk")
     Call<Collection<Annotation>> update(@Body Collection<Annotation> annotations,
                                         @HeaderMap Map<String, String> headers);
+
 
     @DELETE("observations/{uuid}")
     Call<Boolean> delete(@Path("uuid") UUID observationUuid,

@@ -1,31 +1,30 @@
 package org.mbari.m3.vars.annotation.ui.deployeditor;
 
+import com.google.common.collect.Lists;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
+import javafx.beans.InvalidationListener;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.PropertyValueFactory;
 import org.mbari.m3.vars.annotation.EventBus;
 import org.mbari.m3.vars.annotation.UIToolBox;
-import org.mbari.m3.vars.annotation.events.AnnotationsAddedEvent;
-import org.mbari.m3.vars.annotation.events.AnnotationsChangedEvent;
-import org.mbari.m3.vars.annotation.events.AnnotationsRemovedEvent;
-import org.mbari.m3.vars.annotation.events.MediaChangedEvent;
-import org.mbari.m3.vars.annotation.model.Annotation;
-import org.mbari.m3.vars.annotation.model.Association;
-import org.mbari.m3.vars.annotation.services.CombinedMediaAnnotationDecorator;
-import org.mbari.m3.vars.annotation.ui.annotable.AssociationsTableCell;
-import org.mbari.m3.vars.annotation.ui.annotable.FGSTableCell;
-import org.mbari.m3.vars.annotation.ui.annotable.FGSValue;
-import org.mbari.m3.vars.annotation.util.FormatUtils;
-import org.mbari.m3.vars.annotation.util.JFXUtilities;
-import org.mbari.vcr4j.time.Timecode;
 
-import java.time.Duration;
-import java.time.Instant;
+import org.mbari.m3.vars.annotation.commands.*;
+import org.mbari.m3.vars.annotation.events.*;
+import org.mbari.m3.vars.annotation.model.Annotation;
+import org.mbari.m3.vars.annotation.services.MediaService;
+import org.mbari.m3.vars.annotation.ui.shared.AnnotationTableViewFactory;
+import org.mbari.m3.vars.annotation.util.AsyncUtils;
+import org.mbari.m3.vars.annotation.util.JFXUtilities;
+import org.mbari.m3.vars.annotation.util.ListUtils;
+
+import javax.annotation.Nonnull;
+import java.net.URI;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.prefs.Preferences;
+import java.util.stream.Collectors;
 
 /**
  * @author Brian Schlining
@@ -35,14 +34,76 @@ public class AnnotationTableController {
 
     private TableView<Annotation> tableView;
     private final ResourceBundle i18n;
+    private final Map<UUID, URI> videoReferenceUriMap  = new ConcurrentHashMap<>();
+    private final UIToolBox toolBox;
+    private final List<Disposable> disposables = new ArrayList<>();
+    private final EventBus eventBus;
+    private boolean disabled = true;
 
-    public AnnotationTableController(UIToolBox toolBox) {
+    public AnnotationTableController(@Nonnull UIToolBox toolBox,
+                                     @Nonnull EventBus eventBus) {
+        this.toolBox = toolBox;
         this.i18n = toolBox.getI18nBundle();
+        this.eventBus = eventBus;
+
+        Observable<Object> observable = eventBus.toObserverable();
+
+        // Forward this tables annotation mutating events to main event bus
+        EventBus mainEventBus = toolBox.getEventBus();
+        ArrayList<Class<? extends Command>> commandsToForward = Lists.newArrayList(ChangeGroupCmd.class,
+                ChangeActivityCmd.class,
+                //MoveAnnotationsCmd.class,
+                MoveAnnotationsAndImagesCmd.class,
+                ChangeConceptCmd.class,
+                DeleteAssociationsCmd.class);
+        for (Class<? extends Command> clazz : commandsToForward) {
+            observable.ofType(clazz)
+                    .subscribe(mainEventBus::send);
+        }
 
         // Load the column visibility and width
         loadPreferences();
 
+        // After annotations are added do lookup of video URI for video URI column
+        getTableView().getItems()
+                .addListener((InvalidationListener) obs -> updateVideoReferenceUris());
+
     }
+
+    private void select(Collection<Annotation> annos) {
+        JFXUtilities.runOnFXThread(() -> {
+            TableView.TableViewSelectionModel<Annotation> selectionModel = getTableView().getSelectionModel();
+            selectionModel.clearSelection();
+            annos.forEach(selectionModel::select);
+            selectionModel.getSelectedIndices()
+                    .stream()
+                    .min(Comparator.naturalOrder())
+                    .ifPresent(i -> getTableView().scrollTo(i));
+        });
+    }
+
+    private void updateVideoReferenceUris() {
+        ObservableList<Annotation> items = getTableView().getItems();
+        List<UUID> uuids = items.stream()
+                .map(Annotation::getVideoReferenceUuid)
+                .distinct()
+                .collect(Collectors.toList());
+
+        Set<UUID> existingUuids = videoReferenceUriMap.keySet();
+
+        List<UUID> newUuids = new ArrayList<>(uuids);
+        newUuids.removeAll(existingUuids);
+
+        if (newUuids.size() > 0) {
+            videoReferenceUriMap.clear();
+            MediaService mediaService = toolBox.getServices().getMediaService();
+            AsyncUtils.collectAll(uuids, mediaService::findByUuid)
+                    .thenAccept(medias ->
+                            medias.forEach(m -> videoReferenceUriMap.put(m.getVideoReferenceUuid(), m.getUri())))
+                    .thenAccept(v -> getTableView().refresh());
+        }
+    }
+
 
     private void loadPreferences() {
         // Load the column visibility and width
@@ -81,106 +142,82 @@ public class AnnotationTableController {
 
     public TableView<Annotation> getTableView() {
         if (tableView == null) {
-            tableView = new TableView<>();
-            tableView.setTableMenuButtonVisible(true);
+            tableView = AnnotationTableViewFactory.newTableView(i18n);
 
-            // --- Add all columns
-            TableColumn<Annotation, Instant> timestampCol = new TableColumn<>(i18n.getString("annotable.col.timestamp"));
-            timestampCol.setCellValueFactory(new PropertyValueFactory<>("recordedTimestamp"));
-            timestampCol.setId("recordedTimestamp");
-
-            TableColumn<Annotation, Timecode> timecodeCol= new TableColumn<>(i18n.getString("annotable.col.timecode"));
-            timecodeCol.setCellValueFactory(new PropertyValueFactory<>("timecode"));
-            timecodeCol.setId("timecode");
-
-            TableColumn<Annotation, Duration> elapsedTimeCol = new TableColumn<>(i18n.getString("annotable.col.elapsedtime"));
-            elapsedTimeCol.setCellValueFactory(new PropertyValueFactory<>("elapsedTime"));
-            elapsedTimeCol.setCellFactory( c -> new TableCell<Annotation, Duration>() {
-                @Override
-                protected void updateItem(Duration item, boolean empty) {
-                    super.updateItem(item, empty);
-                    if (item == null || empty) {
-                        setText(null);
-                    }
-                    else {
-                        setText(FormatUtils.formatDuration(item));
-                    }
-                }
-            });
-            elapsedTimeCol.setId("elapsedTime");
-
-            TableColumn<Annotation, String> obsCol =
-                    new TableColumn<>(i18n.getString("annotable.col.concept"));
-            obsCol.setCellValueFactory(new PropertyValueFactory<>("concept"));
-            obsCol.setId("concept");
-
-            TableColumn<Annotation, List<Association>> assCol =
-                    new TableColumn<>(i18n.getString("annotable.col.association"));
-            assCol.setCellValueFactory(new PropertyValueFactory<>("associations"));
-            assCol.setSortable(false);
-            assCol.setCellFactory(c -> {
-                AssociationsTableCell cell = new AssociationsTableCell();
-                // If association cell is clicked, select the row in the table
-                cell.getListView().setOnMouseClicked(event -> {
-                    TableRow row = cell.getTableRow();
-                    row.getTableView().getSelectionModel().clearAndSelect(row.getIndex(), c);
-                });
-                return cell;
-            });
-            assCol.setId("associations");
-
-            TableColumn<Annotation, FGSValue> fgsCol =
-                    new TableColumn<>(i18n.getString("annotable.col.framegrab"));
-            fgsCol.setCellValueFactory(param ->
-                    new SimpleObjectProperty<>(new FGSValue(param.getValue())));
-            fgsCol.setSortable(false);
-            fgsCol.setCellFactory(c -> new FGSTableCell());
-            fgsCol.setId("fgs");
-
-
-            TableColumn<Annotation, String> obvCol
-                    = new TableColumn<>(i18n.getString("annotable.col.observer"));
-            obvCol.setCellValueFactory(new PropertyValueFactory<>("observer"));
-            obvCol.setId("observer");
-
-            TableColumn<Annotation, Duration> durationCol = new TableColumn<>(i18n.getString("annotable.col.duration"));
-            durationCol.setCellValueFactory(new PropertyValueFactory<>("duration"));
-            durationCol.setCellFactory(c -> new TableCell<Annotation, Duration>() {
-                @Override
-                protected void updateItem(Duration item, boolean empty) {
-                    super.updateItem(item, empty);
-                    if (item == null || empty) {
-                        setText(null);
-                    }
-                    else {
-                        setText(FormatUtils.formatDuration(item));
-                    }
-                }
-            });
-            durationCol.setId("duration");
-
-            TableColumn<Annotation, String> actCol
-                    = new TableColumn<>(i18n.getString("annotable.col.activity"));
-            actCol.setCellValueFactory(new PropertyValueFactory<>("activity"));
-            actCol.setId("activity");
-
-            TableColumn<Annotation, String> grpCol
-                    = new TableColumn<>(i18n.getString("annotable.col.group"));
-            grpCol.setCellValueFactory(new PropertyValueFactory<>("group"));
-            grpCol.setId("group");
-
-            TableColumn<Annotation, UUID> vruCol
+            TableColumn<Annotation, URI> vruCol
                     = new TableColumn<>(i18n.getString("annotable.col.videoreference"));
-            vruCol.setCellValueFactory(new PropertyValueFactory<>("videoReferenceUuid"));
+            vruCol.setCellValueFactory(param -> {
+                URI uri = null;
+                if (param.getValue() != null) {
+                    uri = videoReferenceUriMap.get(param.getValue().getVideoReferenceUuid());
+                }
+                return new SimpleObjectProperty<>(uri);
+            });
             vruCol.setId("videoReferenceUuid");
 
-
             // TODO get column order from preferences
-            tableView.getColumns().addAll(timecodeCol, elapsedTimeCol, timestampCol,
-                    obsCol, assCol, fgsCol, obvCol, durationCol, actCol, grpCol, vruCol);
-
+            tableView.getColumns().add(vruCol);
 
         }
         return tableView;
+    }
+
+    private void enable() {
+        Observable<Object> observable = eventBus.toObserverable();
+
+        Disposable disposable1 = observable.ofType(AnnotationsAddedEvent.class)
+                .subscribe(e -> JFXUtilities.runOnFXThread(() -> {
+                    tableView.getItems().addAll(e.get());
+                    tableView.sort();
+                }));
+        disposables.add(disposable1);
+
+        Disposable disposable2 = observable.ofType(AnnotationsRemovedEvent.class)
+                .subscribe(e -> JFXUtilities.runOnFXThread(() ->
+                        tableView.getItems().removeAll(e.get())));
+        disposables.add(disposable2);
+
+        Disposable disposable3 = observable.ofType(AnnotationsChangedEvent.class)
+                .subscribe(e -> {
+                    JFXUtilities.runOnFXThread(() -> {
+                        Collection<Annotation> annotations = e.get();
+                        ObservableList<Annotation> items = getTableView().getItems();
+                        List<Annotation> intersection = ListUtils.intersection(annotations, items);
+                        for (Annotation a : intersection) {
+                            int idx = items.indexOf(a);
+                            items.remove(idx);
+                            items.add(idx, a);
+                        }
+                        tableView.refresh();
+                        tableView.sort();
+                        eventBus.send(new AnnotationsSelectedEvent(intersection));
+
+                    });
+                });
+        disposables.add(disposable3);
+
+        Disposable disposable4 = observable.ofType(AnnotationsSelectedEvent.class)
+                .subscribe(e -> select(e.get()));
+        disposables.add(disposable4);
+    }
+
+    private void disable() {
+        disposables.forEach(Disposable::dispose);
+    }
+
+    public boolean isDisabled() {
+        return disabled;
+    }
+
+    public void setDisabled(boolean disabled) {
+        if (this.disabled != disabled) {
+            if (disabled) {
+                disable();
+            }
+            else {
+                enable();
+            }
+        }
+        this.disabled = disabled;
     }
 }
